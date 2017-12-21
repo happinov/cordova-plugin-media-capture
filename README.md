@@ -1,3 +1,7 @@
+---
+title: Media Capture
+description: Capture audio, video, and images.
+---
 <!--
 # license: Licensed to the Apache Software Foundation (ASF) under one
 #         or more contributor license agreements.  See the NOTICE file
@@ -17,7 +21,9 @@
 #         under the License.
 -->
 
-[![Build Status](https://travis-ci.org/apache/cordova-plugin-media-capture.svg?branch=master)](https://travis-ci.org/apache/cordova-plugin-media-capture)
+|AppVeyor|Travis CI|
+|:-:|:-:|
+|[![Build status](https://ci.appveyor.com/api/projects/status/github/apache/cordova-plugin-media-capture?branch=master)](https://ci.appveyor.com/project/ApacheSoftwareFoundation/cordova-plugin-media-capture)|[![Build Status](https://travis-ci.org/apache/cordova-plugin-media-capture.svg?branch=master)](https://travis-ci.org/apache/cordova-plugin-media-capture)|
 
 # cordova-plugin-media-capture
 
@@ -55,13 +61,9 @@ Report issues with this plugin on the [Apache Cordova issue tracker](https://iss
 
 ## Supported Platforms
 
-- Amazon Fire OS
 - Android
-- BlackBerry 10
 - Browser
 - iOS
-- Windows Phone 7 and 8
-- Windows 8
 - Windows
 
 ## Objects
@@ -120,12 +122,8 @@ code.
 
 ### Supported Platforms
 
-- Amazon Fire OS
 - Android
-- BlackBerry 10
 - iOS
-- Windows Phone 7 and 8
-- Windows 8
 - Windows
 
 ### Example
@@ -183,19 +181,41 @@ object featuring a `CaptureError.CAPTURE_NO_MEDIA_FILES` error code.
 
 ### Supported Platforms
 
-- Amazon Fire OS
 - Android
-- BlackBerry 10
 - Browser
 - iOS
-- Windows Phone 7 and 8
-- Windows 8
 - Windows
 
-### Windows Phone 7 Quirks
+### iOS Quirks
 
-Invoking the native camera application while your device is connected
-via Zune does not work, and the error callback executes.
+Since iOS 10 it's mandatory to provide an usage description in the `info.plist` if trying to access privacy-sensitive data. When the system prompts the user to allow access, this usage description string will displayed as part of the permission dialog box, but if you didn't provide the usage description, the app will crash before showing the dialog. Also, Apple will reject apps that access private data but don't provide an usage description.
+
+This plugins requires the following usage descriptions:
+
+* `NSCameraUsageDescription` describes the reason the app accesses the user's camera.
+* `NSMicrophoneUsageDescription` describes the reason the app accesses the user's microphone.
+* `NSPhotoLibraryUsageDescriptionentry` describes the reason the app accesses the user's photo library.
+
+
+To add these entries into the `info.plist`, you can use the `edit-config` tag in the `config.xml` like this:
+
+```
+<edit-config target="NSCameraUsageDescription" file="*-Info.plist" mode="merge">
+    <string>need camera access to take pictures</string>
+</edit-config>
+```
+
+```
+<edit-config target="NSMicrophoneUsageDescription" file="*-Info.plist" mode="merge">
+    <string>need microphone access to record sounds</string>
+</edit-config>
+```
+
+```
+<edit-config target="NSPhotoLibraryUsageDescription" file="*-Info.plist" mode="merge">
+    <string>need to photo library access to get pictures from there</string>
+</edit-config>
+```
 
 ### Browser Quirks
 
@@ -254,12 +274,8 @@ capturing a video clip, the `CaptureErrorCB` callback executes with a
 
 ### Supported Platforms
 
-- Amazon Fire OS
 - Android
-- BlackBerry 10
 - iOS
-- Windows Phone 7 and 8
-- Windows 8
 - Windows
 
 ### Example
@@ -282,10 +298,6 @@ capturing a video clip, the `CaptureErrorCB` callback executes with a
     navigator.device.capture.captureVideo(captureSuccess, captureError, {limit:2});
 
 
-### BlackBerry 10 Quirks
-
-- Cordova for BlackBerry 10 attempts to launch the __Video Recorder__ application, provided by RIM, to capture video recordings. The app receives a `CaptureError.CAPTURE_NOT_SUPPORTED` error code if the application is not installed on the device.
-
 
 ## CaptureAudioOptions
 
@@ -304,18 +316,10 @@ capturing a video clip, the `CaptureErrorCB` callback executes with a
 
     navigator.device.capture.captureAudio(captureSuccess, captureError, options);
 
-### Amazon Fire OS Quirks
-
-- The `duration` parameter is not supported.  Recording lengths cannot be limited programmatically.
-
 ### Android Quirks
 
 - The `duration` parameter is not supported.  Recording lengths can't be limited programmatically.
 
-### BlackBerry 10 Quirks
-
-- The `duration` parameter is not supported.  Recording lengths can't be limited programmatically.
-- The `limit` parameter is not supported, so only one recording can be created for each invocation.
 
 ### iOS Quirks
 
@@ -358,10 +362,6 @@ capturing a video clip, the `CaptureErrorCB` callback executes with a
     var options = { limit: 3 };
 
     navigator.device.capture.captureVideo(captureSuccess, captureError, options);
-
-### BlackBerry 10 Quirks
-
-- The __duration__ property is ignored, so the length of recordings can't be limited programmatically.
 
 ### iOS Quirks
 
@@ -515,23 +515,10 @@ callback.
 
 ### Supported Platforms
 
-- Amazon Fire OS
 - Android
-- BlackBerry 10
 - iOS
-- Windows Phone 7 and 8
-- Windows 8
 - Windows
 
-### Amazon Fire OS Quirks
-
-The API to access media file format information is limited, so not all
-`MediaFileData` properties are supported.
-
-### BlackBerry 10 Quirks
-
-Does not provide an API for information about media files, so all
-`MediaFileData` objects return with default values.
 
 ### Android Quirks
 
@@ -579,36 +566,6 @@ The API to access media file format information is limited, so not all
 
 - __duration__: The length of the video or sound clip in seconds. The value is zero for images. (Number)
 
-### BlackBerry 10 Quirks
-
-No API provides format information for media files, so the
-`MediaFileData` object returned by `MediaFile.getFormatData` features
-the following default values:
-
-- __codecs__: Not supported, and returns `null`.
-
-- __bitrate__: Not supported, and returns zero.
-
-- __height__: Not supported, and returns zero.
-
-- __width__: Not supported, and returns zero.
-
-- __duration__: Not supported, and returns zero.
-
-### Amazon Fire OS Quirks
-
-Supports the following `MediaFileData` properties:
-
-- __codecs__: Not supported, and returns `null`.
-
-- __bitrate__: Not supported, and returns zero.
-
-- __height__: Supported: image and video files only.
-
-- __width__: Supported: image and video files only.
-
-- __duration__: Supported: audio and video files only
-
 ### Android Quirks
 
 Supports the following `MediaFileData` properties:
@@ -636,3 +593,41 @@ Supports the following `MediaFileData` properties:
 - __width__: Supported: image and video files only.
 
 - __duration__: Supported: audio and video files only.
+
+## Android Lifecycle Quirks
+
+When capturing audio, video, or images on the Android platform, there is a chance that the
+application will get destroyed after the Cordova Webview is pushed to the background by
+the native capture application. See the [Android Lifecycle Guide][android-lifecycle] for
+a full description of the issue. In this case, the success and failure callbacks passed
+to the capture method will not be fired and instead the results of the call will be
+delivered via a document event that fires after the Cordova [resume event][resume-event].
+
+In your app, you should subscribe to the two possible events like so:
+
+```javascript
+function onDeviceReady() {
+    // pendingcaptureresult is fired if the capture call is successful
+    document.addEventListener('pendingcaptureresult', function(mediaFiles) {
+        // Do something with result
+    });
+
+    // pendingcaptureerror is fired if the capture call is unsuccessful
+    document.addEventListener('pendingcaptureerror', function(error) {
+        // Handle error case
+    });
+}
+
+// Only subscribe to events after deviceready fires
+document.addEventListener('deviceready', onDeviceReady);
+```
+
+It is up you to track what part of your code these results are coming from. Be sure to
+save and restore your app's state as part of the [pause][pause-event] and
+[resume][resume-event] events as appropriate. Please note that these events will only
+fire on the Android platform and only when the Webview was destroyed during a capture
+operation.
+
+[android-lifecycle]: http://cordova.apache.org/docs/en/latest/guide/platforms/android/index.html#lifecycle-guide
+[pause-event]: http://cordova.apache.org/docs/en/latest/cordova/events/events.html#pause
+[resume-event]: http://cordova.apache.org/docs/en/latest/cordova/events/events.html#resume

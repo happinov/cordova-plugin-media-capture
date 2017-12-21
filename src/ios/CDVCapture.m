@@ -141,6 +141,7 @@
             pickerController = [[CDVImagePicker alloc] init];
         }
 
+        [self showAlertIfAccessProhibited];
         pickerController.delegate = self;
         pickerController.sourceType = UIImagePickerControllerSourceTypeCamera;
         pickerController.allowsEditing = NO;
@@ -248,6 +249,8 @@
         [self.commandDelegate sendPluginResult:result callbackId:callbackId];
         pickerController = nil;
     } else {
+        [self showAlertIfAccessProhibited];
+
         pickerController.delegate = self;
         pickerController.sourceType = UIImagePickerControllerSourceTypeCamera;
         pickerController.allowsEditing = NO;
@@ -297,6 +300,47 @@
     NSArray* fileArray = [NSArray arrayWithObject:fileDict];
 
     return [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:fileArray];
+}
+
+- (void)showAlertIfAccessProhibited
+{
+    if (![self hasCameraAccess]) {
+        [self showPermissionsAlert];
+    }
+}
+
+- (BOOL)hasCameraAccess
+{
+    AVAuthorizationStatus status = [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo];
+
+    return status != AVAuthorizationStatusDenied && status != AVAuthorizationStatusRestricted;
+}
+
+- (void)showPermissionsAlert
+{
+    __weak CDVCapture* weakSelf = self;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[[UIAlertView alloc] initWithTitle:[[NSBundle mainBundle]
+                                             objectForInfoDictionaryKey:@"CFBundleDisplayName"]
+                                    message:NSLocalizedString(@"Access to the camera has been prohibited; please enable it in the Settings app to continue.", nil)
+                                   delegate:weakSelf
+                          cancelButtonTitle:NSLocalizedString(@"OK", nil)
+                          otherButtonTitles:NSLocalizedString(@"Settings", nil), nil] show];
+    });
+}
+
+- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+    if (buttonIndex == 1) {
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+    }
+
+    CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageToErrorObject:CAPTURE_PERMISSION_DENIED];
+
+    [[pickerController presentingViewController] dismissViewControllerAnimated:YES completion:nil];
+    [self.commandDelegate sendPluginResult:result callbackId:pickerController.callbackId];
+    pickerController = nil;
+    self.inUse = NO;
 }
 
 - (void)getMediaModes:(CDVInvokedUrlCommand*)command
@@ -628,7 +672,8 @@
         microphoneResource = @"CDVCapture.bundle/microphone-568h";
     }
 
-    UIImage* microphone = [UIImage imageNamed:[self resolveImageResource:microphoneResource]];
+    NSBundle* cdvBundle = [NSBundle bundleForClass:[CDVCapture class]];
+    UIImage* microphone = [UIImage imageNamed:[self resolveImageResource:microphoneResource] inBundle:cdvBundle compatibleWithTraitCollection:nil];
     UIView* microphoneView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, viewRect.size.width, microphone.size.height)];
     [microphoneView setBackgroundColor:[UIColor colorWithPatternImage:microphone]];
     [microphoneView setUserInteractionEnabled:NO];
@@ -636,7 +681,7 @@
     [tmp addSubview:microphoneView];
 
     // add bottom bar view
-    UIImage* grayBkg = [UIImage imageNamed:[self resolveImageResource:@"CDVCapture.bundle/controls_bg"]];
+    UIImage* grayBkg = [UIImage imageNamed:[self resolveImageResource:@"CDVCapture.bundle/controls_bg"] inBundle:cdvBundle compatibleWithTraitCollection:nil];
     UIView* controls = [[UIView alloc] initWithFrame:CGRectMake(0, microphone.size.height, viewRect.size.width, grayBkg.size.height)];
     [controls setBackgroundColor:[UIColor colorWithPatternImage:grayBkg]];
     [controls setUserInteractionEnabled:NO];
@@ -644,7 +689,7 @@
     [tmp addSubview:controls];
 
     // make red recording background view
-    UIImage* recordingBkg = [UIImage imageNamed:[self resolveImageResource:@"CDVCapture.bundle/recording_bg"]];
+    UIImage* recordingBkg = [UIImage imageNamed:[self resolveImageResource:@"CDVCapture.bundle/recording_bg"] inBundle:cdvBundle compatibleWithTraitCollection:nil];
     UIColor* background = [UIColor colorWithPatternImage:recordingBkg];
     self.recordingView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, viewRect.size.width, recordingBkg.size.height)];
     [self.recordingView setBackgroundColor:background];
@@ -672,8 +717,8 @@
 
     // Add record button
 
-    self.recordImage = [UIImage imageNamed:[self resolveImageResource:@"CDVCapture.bundle/record_button"]];
-    self.stopRecordImage = [UIImage imageNamed:[self resolveImageResource:@"CDVCapture.bundle/stop_button"]];
+    self.recordImage = [UIImage imageNamed:[self resolveImageResource:@"CDVCapture.bundle/record_button"] inBundle:cdvBundle compatibleWithTraitCollection:nil];
+    self.stopRecordImage = [UIImage imageNamed:[self resolveImageResource:@"CDVCapture.bundle/stop_button"] inBundle:cdvBundle compatibleWithTraitCollection:nil];
     self.recordButton.accessibilityTraits |= [self accessibilityTraits];
     self.recordButton = [[UIButton alloc] initWithFrame:CGRectMake((viewRect.size.width - recordImage.size.width) / 2, (microphone.size.height + (grayBkg.size.height - recordImage.size.height) / 2), recordImage.size.width, recordImage.size.height)];
     [self.recordButton setAccessibilityLabel:PluginLocalizedString(captureCommand, @"toggle audio recording", nil)];
@@ -779,7 +824,7 @@
         __block NSError* error = nil;
 
         __weak CDVAudioRecorderViewController* weakSelf = self;
-        
+
         void (^startRecording)(void) = ^{
             [weakSelf.avSession setCategory:AVAudioSessionCategoryRecord error:&error];
             [weakSelf.avSession setActive:YES error:&error];
